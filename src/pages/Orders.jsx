@@ -1,16 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import axiosInstance from '../utils/axiosInstance';
 import {
     ShoppingBag, CheckCircle2, Banknote, RefreshCw,
     Receipt, Clock, Loader2, ShoppingCart, XCircle, CreditCard,
 } from '../icons';
 
 const STATUS_CONFIG = {
-    'Pending':          { badge: 'bg-stone-100 text-stone-600 border border-stone-200',           dot: 'bg-stone-400',   Icon: Clock        },
-    'Processing':       { badge: 'bg-orange-100 text-orange-700 border border-orange-200',        dot: 'bg-orange-500', Icon: Loader2      },
-    'Ready for Pickup': { badge: 'bg-amber-100 text-amber-700 border border-amber-200',           dot: 'bg-amber-400',  Icon: ShoppingCart },
-    'Completed':        { badge: 'bg-stone-800 text-white border border-stone-700',               dot: 'bg-orange-400', Icon: CheckCircle2 },
-    'Cancelled':        { badge: 'bg-stone-100 text-stone-400 border border-stone-200',           dot: 'bg-stone-300',  Icon: XCircle      },
+    'Pending':          { badge: 'bg-red-100 text-red-700 border border-red-200',         dot: 'bg-red-500',    Icon: Clock        },
+    'Processing':       { badge: 'bg-orange-100 text-orange-700 border border-orange-200',  dot: 'bg-orange-500', Icon: Loader2      },
+    'Ready for Pickup': { badge: 'bg-amber-100 text-amber-700 border border-amber-200',     dot: 'bg-amber-400',  Icon: ShoppingCart },
+    'Completed':        { badge: 'bg-green-100 text-green-800 border border-green-300',     dot: 'bg-green-500',  Icon: CheckCircle2 },
+    'Cancelled':        { badge: 'bg-stone-100 text-stone-400 border border-stone-200',     dot: 'bg-stone-300',  Icon: XCircle      },
 };
 
 export default function Orders() {
@@ -20,7 +20,7 @@ export default function Orders() {
 
     const fetchOrders = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/orders');
+            const res = await axiosInstance.get('/orders');
             const data = res.data;
             setOrders(data);
 
@@ -28,12 +28,10 @@ export default function Orders() {
                 const maxId = Math.max(...data.map(o => o.id));
 
                 if (prevMaxIdRef.current === null) {
-                    // first load: mark the single latest as "new" for 8s
                     prevMaxIdRef.current = maxId;
                     setNewOrderIds(new Set([maxId]));
                     setTimeout(() => setNewOrderIds(new Set()), 8000);
                 } else if (maxId > prevMaxIdRef.current) {
-                    // new orders arrived since last fetch
                     const freshIds = new Set(data.filter(o => o.id > prevMaxIdRef.current).map(o => o.id));
                     prevMaxIdRef.current = maxId;
                     setNewOrderIds(freshIds);
@@ -47,7 +45,7 @@ export default function Orders() {
 
     const handleStatusChange = async (orderId, newStatus) => {
         try {
-            await axios.put(`http://localhost:5000/api/orders/${orderId}/status`, { status: newStatus });
+            await axiosInstance.put(`/orders/${orderId}/status`, { status: newStatus });
             fetchOrders();
         } catch (e) { console.error(e); }
     };
@@ -57,8 +55,7 @@ export default function Orders() {
 
     return (
         <div className="space-y-6">
-
-            {/* ── Controls ── */}
+            {/* Controls */}
             <div className="flex items-center justify-between">
                 <p className="text-sm text-stone-500 font-medium">{orders.length} total orders recorded</p>
                 <button onClick={fetchOrders}
@@ -67,11 +64,11 @@ export default function Orders() {
                 </button>
             </div>
 
-            {/* ── Stat strip ── */}
+            {/* Stat strip */}
             <div className="grid grid-cols-3 gap-4">
                 {[
                     { Icon: ShoppingBag,  value: orders.length,                          label: 'Total Orders', color: 'text-orange-500', bg: 'bg-orange-50' },
-                    { Icon: CheckCircle2, value: completedCount,                         label: 'Completed',    color: 'text-stone-800',   bg: 'bg-stone-100' },
+                    { Icon: CheckCircle2, value: completedCount,                         label: 'Completed',    color: 'text-stone-800',  bg: 'bg-stone-100' },
                     { Icon: Banknote,     value: `Rs. ${totalRevenue.toLocaleString()}`, label: 'Revenue',      color: 'text-orange-500', bg: 'bg-orange-50' },
                 ].map(s => (
                     <div key={s.label} className="bg-white rounded-2xl border border-stone-100 shadow-sm p-4 flex items-center gap-3">
@@ -86,7 +83,7 @@ export default function Orders() {
                 ))}
             </div>
 
-            {/* ── Status summary pills ── */}
+            {/* Status summary pills */}
             {orders.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                     {Object.entries(STATUS_CONFIG).map(([status, cfg]) => {
@@ -102,12 +99,12 @@ export default function Orders() {
                 </div>
             )}
 
-            {/* ── Orders list ── */}
+            {/* Orders list */}
             <div className="space-y-4">
                 {orders.length === 0 ? (
                     <div className="bg-white rounded-2xl border border-stone-100 shadow-sm py-20 text-center">
                         <div className="w-20 h-20 bg-orange-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                            <ShoppingBag className="w-10 h-10 text-orange-200" />
+                            <ShoppingCart className="w-10 h-10 text-orange-200" />
                         </div>
                         <p className="text-stone-700 font-bold">No orders found yet</p>
                         <p className="text-stone-400 text-sm mt-1">Customer orders will appear here once placed.</p>
@@ -213,23 +210,28 @@ export default function Orders() {
                                     )}
                                 </div>
 
-                                {/* Card footer — status update */}
+                                {/* Card footer — single action button */}
                                 <div className="px-5 sm:px-6 py-3 bg-stone-50/80 border-t border-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                     <p className="text-xs font-semibold text-stone-500 flex items-center gap-1.5">
                                         <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
                                         Current Status: <span className="font-bold text-stone-800">{status}</span>
                                     </p>
-                                    <select
-                                        value={status}
-                                        onChange={e => handleStatusChange(order.id, e.target.value)}
-                                        className="px-4 py-2 text-sm font-semibold text-stone-700 bg-white border-2 border-stone-200 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all cursor-pointer hover:border-orange-300"
-                                    >
-                                        <option value="Pending">Pending</option>
-                                        <option value="Processing">Processing</option>
-                                        <option value="Ready for Pickup">Ready for Pickup</option>
-                                        <option value="Completed">Completed</option>
-                                        <option value="Cancelled">Cancelled</option>
-                                    </select>
+                                    
+                                    {status !== 'Completed' ? (
+                                        <button
+                                            onClick={() => handleStatusChange(order.id, 'Completed')}
+                                            className="flex items-center justify-center gap-2 px-6 py-2 text-sm font-bold text-white bg-red-500 rounded-xl hover:bg-red-600 transition-colors shadow-sm"
+                                        >
+                                            <CheckCircle2 className="w-4 h-4" /> Complete Order
+                                        </button>
+                                    ) : (
+                                        <button
+                                            disabled
+                                            className="flex items-center justify-center gap-2 px-6 py-2 text-sm font-bold text-white bg-green-500 rounded-xl cursor-not-allowed shadow-sm opacity-90"
+                                        >
+                                            <CheckCircle2 className="w-4 h-4" /> Completed
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         );

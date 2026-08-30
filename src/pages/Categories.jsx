@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import axiosInstance from '../utils/axiosInstance'; // Secure instance handling tokens
 import { Tag, Pencil, Plus } from '../icons';
 
 export default function Categories() {
@@ -10,10 +10,12 @@ export default function Categories() {
 
     const fetchCategories = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/categories');
+            // Using axiosInstance and relative paths
+            const res = await axiosInstance.get('/categories');
             setCategories(res.data);
         } catch (e) { console.error(e); }
     };
+    
     useEffect(() => { fetchCategories(); }, []);
 
     const handleSubmit = async (e) => {
@@ -21,12 +23,18 @@ export default function Categories() {
         const fd = new FormData();
         fd.append('name', name);
         if (imageFile) fd.append('image', imageFile);
+        
         try {
             if (editingId) {
-                await axios.put(`http://localhost:5000/api/categories/${editingId}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                await axiosInstance.put(`/categories/${editingId}`, fd, { 
+                    headers: { 'Content-Type': 'multipart/form-data' } 
+                });
             } else {
-                await axios.post('http://localhost:5000/api/categories', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                await axiosInstance.post('/categories', fd, { 
+                    headers: { 'Content-Type': 'multipart/form-data' } 
+                });
             }
+            
             setEditingId(null); setName(''); setImageFile(null);
             document.getElementById('categoryImageInput').value = '';
             fetchCategories();
@@ -42,7 +50,7 @@ export default function Categories() {
     const handleDelete = async (id) => {
         if (window.confirm('WARNING: Deleting this category will also DELETE ALL MENU ITEMS inside it!\n\nAre you sure?')) {
             try {
-                await axios.delete(`http://localhost:5000/api/categories/${id}`);
+                await axiosInstance.delete(`/categories/${id}`);
                 fetchCategories();
             } catch (e) { console.error(e); }
         }
@@ -59,7 +67,7 @@ export default function Categories() {
     return (
         <div className="space-y-6">
 
-            {/* Form Card — White with Orange & Green Border */}
+            {/* Form Card */}
             <div className="rounded-2xl p-[2px] bg-gradient-to-r from-orange-500 to-green-500 shadow-xl">
                 <div className="relative overflow-hidden rounded-[14px] p-6 bg-white h-full">
                     <h2 className="text-sm font-bold text-stone-900 mb-5 flex items-center gap-2">
@@ -93,7 +101,7 @@ export default function Categories() {
                 </div>
             </div>
 
-            {/* List Card — White */}
+            {/* List Card */}
             <div className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden">
                 <div className="px-6 py-4 border-b border-stone-100 flex items-center justify-between">
                     <h2 className="font-bold text-stone-900 text-sm flex items-center gap-2">

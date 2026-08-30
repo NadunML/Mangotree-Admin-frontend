@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import axiosInstance from '../utils/axiosInstance';
 import { UtensilsCrossed, Pencil, Plus } from '../icons';
 
 export default function MenuItems() {
@@ -15,13 +15,14 @@ export default function MenuItems() {
     const fetchData = async () => {
         try {
             const [itemsRes, catsRes] = await Promise.all([
-                axios.get('http://localhost:5000/api/menu-items'),
-                axios.get('http://localhost:5000/api/categories'),
+                axiosInstance.get('/menu-items'),
+                axiosInstance.get('/categories'),
             ]);
             setMenuItems(itemsRes.data);
             setCategories(catsRes.data);
         } catch (e) { console.error(e); }
     };
+    
     useEffect(() => { fetchData(); }, []);
 
     const handleSubmit = async (e) => {
@@ -30,11 +31,16 @@ export default function MenuItems() {
         fd.append('category_id', categoryId); fd.append('name', name);
         fd.append('description', description); fd.append('price', price);
         if (imageFile) fd.append('image', imageFile);
+        
         try {
             if (editingId) {
-                await axios.put(`http://localhost:5000/api/menu-items/${editingId}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                await axiosInstance.put(`/menu-items/${editingId}`, fd, { 
+                    headers: { 'Content-Type': 'multipart/form-data' } 
+                });
             } else {
-                await axios.post('http://localhost:5000/api/menu-items', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                await axiosInstance.post('/menu-items', fd, { 
+                    headers: { 'Content-Type': 'multipart/form-data' } 
+                });
             }
             setEditingId(null); setCategoryId(''); setName(''); setDescription(''); setPrice(''); setImageFile(null);
             document.getElementById('imageInput').value = '';
@@ -52,7 +58,7 @@ export default function MenuItems() {
     const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this menu item?')) {
             try {
-                await axios.delete(`http://localhost:5000/api/menu-items/${id}`);
+                await axiosInstance.delete(`/menu-items/${id}`);
                 fetchData();
             } catch (e) { console.error(e); }
         }
@@ -63,13 +69,21 @@ export default function MenuItems() {
         document.getElementById('imageInput').value = '';
     };
 
+    // Logic to sort by category and append newly added items to the end
+    const sortedMenuItems = [...menuItems].sort((a, b) => {
+        if (a.category_id === b.category_id) {
+            return a.id - b.id; 
+        }
+        return a.category_id - b.category_id;
+    });
+
     const iClass = "w-full px-4 py-3 bg-white border border-stone-200 rounded-xl text-stone-900 text-sm placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all";
     const lClass = "block text-[10px] font-bold tracking-[0.15em] uppercase text-stone-500 mb-1.5";
 
     return (
         <div className="space-y-6">
 
-            {/* Form Card — White with Orange & Green Border */}
+            {/* Form Card */}
             <div className="rounded-2xl p-[2px] bg-gradient-to-r from-orange-500 to-green-500 shadow-xl">
                 <div className="relative overflow-hidden rounded-[14px] p-6 bg-white h-full">
                     <h2 className="text-sm font-bold text-stone-900 mb-5 flex items-center gap-2">
@@ -119,7 +133,7 @@ export default function MenuItems() {
                 </div>
             </div>
 
-            {/* List Card — White */}
+            {/* List Card */}
             <div className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden">
                 <div className="px-6 py-4 border-b border-stone-100 flex items-center justify-between">
                     <h2 className="font-bold text-stone-900 text-sm flex items-center gap-2">
@@ -143,33 +157,41 @@ export default function MenuItems() {
                     </div>
                 ) : (
                     <ul className="divide-y divide-stone-50">
-                        {menuItems.map(item => (
-                            <li key={item.id} className="flex items-center justify-between px-6 py-4 bg-white hover:bg-orange-50/30 transition-colors gap-4">
-                                <div className="flex items-center gap-4 min-w-0 flex-1">
-                                    {item.image_url
-                                        ? <img src={item.image_url} alt={item.name} className="w-14 h-14 object-cover rounded-xl flex-shrink-0 border border-stone-100 shadow-sm" />
-                                        : <div className="w-14 h-14 bg-orange-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                                            <UtensilsCrossed className="w-6 h-6 text-orange-200" />
-                                          </div>
-                                    }
-                                    <div className="min-w-0">
-                                        <p className="font-bold text-stone-900 text-sm truncate">{item.name}</p>
-                                        <p className="text-xs text-orange-500 font-bold mt-0.5">Rs. {Number(item.price).toLocaleString()}</p>
-                                        {item.description && <p className="text-xs text-stone-400 truncate mt-0.5 max-w-xs">{item.description}</p>}
+                        {sortedMenuItems.map(item => {
+                            const categoryName = categories.find(c => c.id === item.category_id)?.name || 'Uncategorized';
+                            return (
+                                <li key={item.id} className="flex items-center justify-between px-6 py-4 bg-white hover:bg-orange-50/30 transition-colors gap-4">
+                                    <div className="flex items-center gap-4 min-w-0 flex-1">
+                                        {item.image_url
+                                            ? <img src={item.image_url} alt={item.name} className="w-14 h-14 object-cover rounded-xl flex-shrink-0 border border-stone-100 shadow-sm" />
+                                            : <div className="w-14 h-14 bg-orange-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                                                <UtensilsCrossed className="w-6 h-6 text-orange-200" />
+                                              </div>
+                                        }
+                                        <div className="min-w-0">
+                                            <div className="flex items-center gap-2 mb-0.5">
+                                                <p className="font-bold text-stone-900 text-sm truncate">{item.name}</p>
+                                                <span className="px-2 py-0.5 bg-stone-100 text-stone-500 text-[10px] font-bold rounded-md uppercase tracking-wider">
+                                                    {categoryName}
+                                                </span>
+                                            </div>
+                                            <p className="text-xs text-orange-500 font-bold">Rs. {Number(item.price).toLocaleString()}</p>
+                                            {item.description && <p className="text-xs text-stone-400 truncate mt-0.5 max-w-xs">{item.description}</p>}
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="flex items-center gap-2 flex-shrink-0">
-                                    <button onClick={() => handleEdit(item)}
-                                        className="px-4 py-1.5 border-2 border-orange-500 text-orange-500 text-xs font-bold rounded-full hover:bg-orange-500 hover:text-white transition-all duration-200">
-                                        Edit
-                                    </button>
-                                    <button onClick={() => handleDelete(item.id)}
-                                        className="px-4 py-1.5 border-2 border-stone-200 text-stone-500 text-xs font-bold rounded-full hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-200">
-                                        Delete
-                                    </button>
-                                </div>
-                            </li>
-                        ))}
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                        <button onClick={() => handleEdit(item)}
+                                            className="px-4 py-1.5 border-2 border-orange-500 text-orange-500 text-xs font-bold rounded-full hover:bg-orange-500 hover:text-white transition-all duration-200">
+                                            Edit
+                                        </button>
+                                        <button onClick={() => handleDelete(item.id)}
+                                            className="px-4 py-1.5 border-2 border-stone-200 text-stone-500 text-xs font-bold rounded-full hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-200">
+                                            Delete
+                                        </button>
+                                    </div>
+                                </li>
+                            );
+                        })}
                     </ul>
                 )}
             </div>

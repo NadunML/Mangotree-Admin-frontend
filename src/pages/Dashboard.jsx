@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import axiosInstance from '../utils/axiosInstance';
 import { Tag, UtensilsCrossed, ShoppingBag, ChevronRight } from '../icons';
 
 export default function Dashboard() {
@@ -8,13 +8,20 @@ export default function Dashboard() {
     useEffect(() => {
         const fetchStats = async () => {
             try {
+                // Securely fetch data using axiosInstance and relative paths
                 const [catRes, menuRes, orderRes] = await Promise.all([
-                    axios.get('http://localhost:5000/api/categories'),
-                    axios.get('http://localhost:5000/api/menu-items'),
-                    axios.get('http://localhost:5000/api/orders'),
+                    axiosInstance.get('/categories'),
+                    axiosInstance.get('/menu-items'),
+                    axiosInstance.get('/orders'),
                 ]);
-                setStats({ categories: catRes.data.length, menuItems: menuRes.data.length, orders: orderRes.data.length });
-            } catch (error) { console.error('Error fetching statistics:', error); }
+                setStats({ 
+                    categories: catRes.data.length, 
+                    menuItems: menuRes.data.length, 
+                    orders: orderRes.data.length 
+                });
+            } catch (error) { 
+                console.error('Error fetching statistics:', error); 
+            }
         };
         fetchStats();
     }, []);
@@ -86,7 +93,7 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* ── Overview Hero Banner — White with Orange & Green Border ── */}
+            {/* Overview Hero Banner */}
             <div className="rounded-2xl p-[2px] bg-gradient-to-r from-orange-500 to-green-500 shadow-xl">
                 <div className="relative overflow-hidden rounded-[14px] p-6 md:p-8 bg-white h-full">
                     <div className="absolute top-0 right-0 w-80 h-80 bg-orange-500/5 rounded-full blur-3xl pointer-events-none -translate-y-1/3 translate-x-1/3" />

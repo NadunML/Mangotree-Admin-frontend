@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import axios from 'axios';
+import axiosInstance from '../utils/axiosInstance';
 import { AlertTriangle, Lock, Loader2, BarChart3, UtensilsCrossed, Truck } from '../icons';
 
 export default function Login() {
@@ -13,12 +13,15 @@ export default function Login() {
         setError('');
         setIsLoading(true);
         try {
-            const response = await axios.post('http://localhost:5000/api/auth/login', { email, password });
+            // Securely fetching using axiosInstance to prevent hardcoded URLs
+            const response = await axiosInstance.post('/auth/login', { email, password });
+            
             if (response.data.user.role !== 'admin') {
                 setError('Access denied. Admins only.');
                 setIsLoading(false);
                 return;
             }
+            
             localStorage.setItem('token', response.data.token);
             localStorage.setItem('user', JSON.stringify(response.data.user));
             window.location.href = '/';
@@ -40,7 +43,7 @@ export default function Login() {
     return (
         <div className="fixed inset-0 z-50 flex overflow-hidden" style={{ background: '#FAF9F6' }}>
 
-            {/* ── LEFT: Brand panel — Dark Warm Chocolate Gradient ── */}
+            {/* LEFT: Brand panel — Dark Warm Chocolate Gradient */}
             <div className="hidden lg:flex flex-col justify-center items-center w-1/2 h-full text-white p-10 xl:p-16 relative gap-10 border-r border-amber-900/30"
                  style={{ background: 'linear-gradient(135deg, #140a05 0%, #341609 50%, #170a05 100%)' }}>
                 <div className="absolute -top-32 -left-32 w-96 h-96 bg-orange-500/20 rounded-full blur-[100px] pointer-events-none" />
@@ -90,7 +93,7 @@ export default function Login() {
                 </div>
             </div>
 
-            {/* ── RIGHT: Form panel — Warm Cream Background ── */}
+            {/* RIGHT: Form panel — Warm Cream Background */}
             <div className="w-full lg:w-1/2 h-full flex flex-col items-center justify-center p-6 lg:p-8 relative"
                  style={{ background: '#FAF9F6' }}>
 

@@ -1,17 +1,20 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Tag, UtensilsCrossed, ShoppingBag, LogOut, Menu, X, Bell, ChevronRight } from './icons';
-import axios from 'axios';
 import Dashboard from './pages/Dashboard';
 import Categories from './pages/Categories';
 import MenuItems from './pages/MenuItems';
 import Orders from './pages/Orders';
 import Login from './pages/Login';
 
-// ── Brand Gradient (Sidebar + Form panels) ──────────────────────────────────
+// Import the security files you just created
+import ProtectedRoute from './pages/ProtectedRoute';
+import axiosInstance from './utils/axiosInstance';
+
+// Brand Gradient (Sidebar + Form panels)
 const SIDEBAR_BG = 'linear-gradient(175deg, #402110 0%, #b14d1b 45%, #a85738 100%)';
 
-// ── Order Notification Toast ─────────────────────────────────────────────────
+// Order Notification Toast
 function OrderNotification({ order, onDismiss, onViewOrders }) {
   const [exiting, setExiting] = useState(false);
 
@@ -33,11 +36,9 @@ function OrderNotification({ order, onDismiss, onViewOrders }) {
       <div className="bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden cursor-pointer group hover:shadow-orange-200/50 transition-shadow duration-300"
            style={{ boxShadow: '0 8px 32px rgba(249,115,22,0.18), 0 2px 8px rgba(0,0,0,0.08)' }}>
 
-        {/* Orange top accent bar */}
         <div className="h-1 w-full bg-gradient-to-r from-orange-500 to-amber-400" />
 
         <div className="p-4">
-          {/* Header row */}
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 bg-orange-100 rounded-xl flex items-center justify-center flex-shrink-0 relative">
@@ -59,7 +60,6 @@ function OrderNotification({ order, onDismiss, onViewOrders }) {
             </button>
           </div>
 
-          {/* Order details */}
           <div className="bg-stone-50 rounded-xl p-3 border border-stone-100 mb-3">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs text-stone-500 font-medium">Order Total</span>
@@ -81,7 +81,6 @@ function OrderNotification({ order, onDismiss, onViewOrders }) {
             )}
           </div>
 
-          {/* Action row */}
           <div className="flex items-center gap-2">
             <button
               onClick={e => { e.stopPropagation(); handleView(); }}
@@ -98,7 +97,6 @@ function OrderNotification({ order, onDismiss, onViewOrders }) {
           </div>
         </div>
 
-        {/* Bottom hint */}
         <div className="px-4 pb-3">
           <p className="text-[10px] text-stone-400 text-center">Click anywhere to dismiss</p>
         </div>
@@ -107,7 +105,7 @@ function OrderNotification({ order, onDismiss, onViewOrders }) {
   );
 }
 
-// ── Sidebar Link ─────────────────────────────────────────────────────────────
+// Sidebar Link
 function SidebarLink({ to, icon: Icon, label, onClick }) {
   const location = useLocation();
   const isActive = location.pathname === to;
@@ -128,7 +126,7 @@ function SidebarLink({ to, icon: Icon, label, onClick }) {
   );
 }
 
-// ── Main Layout ───────────────────────────────────────────────────────────────
+// Main Layout
 function MainLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen]   = useState(false);
   const [notification, setNotification]           = useState(null);
@@ -140,24 +138,22 @@ function MainLayout() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    window.location.href = '/';
+    window.location.href = '/login';
   };
 
-  // ── Poll for new orders every 10 seconds ───────────────────────────────────
+  // Poll for new orders securely using axiosInstance
   const pollOrders = useCallback(async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/orders');
+      // Replaced raw axios with axiosInstance to ensure tokens are sent
+      const res = await axiosInstance.get('/orders');
       const orders = res.data;
       if (!orders || orders.length === 0) return;
 
-      // Sort by id descending to find the latest
       const latest = orders.reduce((max, o) => (o.id > max.id ? o : max), orders[0]);
 
       if (lastOrderIdRef.current === null) {
-        // First load — just store the latest id, no notification
         lastOrderIdRef.current = latest.id;
       } else if (latest.id > lastOrderIdRef.current) {
-        // New order detected!
         lastOrderIdRef.current = latest.id;
         setNotification(latest);
       }
@@ -173,7 +169,7 @@ function MainLayout() {
   }, [pollOrders]);
 
   const navItems = [
-    { to: '/',           icon: LayoutDashboard, label: 'Dashboard'  },
+    { to: '/',     icon: LayoutDashboard, label: 'Dashboard'  },
     { to: '/orders',     icon: ShoppingBag,     label: 'Orders'     },
     { to: '/categories', icon: Tag,             label: 'Categories' },
     { to: '/menu-items', icon: UtensilsCrossed, label: 'Menu Items' },
@@ -181,8 +177,6 @@ function MainLayout() {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
-
-      {/* ── Brand ── */}
       <div className="px-5 pt-6 pb-5 border-b border-amber-900/30">
         <div className="flex items-center gap-3">
           <img src="/favicon.png" alt="MangoTree" className="h-9 w-9 object-contain flex-shrink-0" />
@@ -197,7 +191,6 @@ function MainLayout() {
         </div>
       </div>
 
-      {/* ── User card ── */}
       <div className="px-4 py-4 border-b border-amber-900/30">
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/5 border border-amber-900/40">
           <div className="w-9 h-9 rounded-lg bg-orange-500 text-white flex items-center justify-center font-bold text-sm shadow-md flex-shrink-0">
@@ -211,7 +204,6 @@ function MainLayout() {
         </div>
       </div>
 
-      {/* ── Navigation ── */}
       <div className="flex-1 px-3 py-4 space-y-1">
         <p className="text-[10px] font-bold text-amber-200/30 uppercase tracking-[0.15em] px-4 mb-3">Navigation</p>
         {navItems.map(item => (
@@ -219,7 +211,6 @@ function MainLayout() {
         ))}
       </div>
 
-      {/* ── Sign Out ── */}
       <div className="px-3 pb-5">
         <div className="h-px bg-amber-900/30 mb-4" />
         <button
@@ -235,8 +226,6 @@ function MainLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden font-sans antialiased" style={{ background: '#FAF9F6' }}>
-
-      {/* ── Order Notification ── */}
       {notification && (
         <OrderNotification
           order={notification}
@@ -245,7 +234,6 @@ function MainLayout() {
         />
       )}
 
-      {/* ── Mobile top bar ── */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-14 z-20 flex items-center justify-between px-4 bg-white border-b border-stone-200 shadow-sm">
         <div className="flex items-center gap-2.5">
           <img src="/favicon.png" alt="" className="h-7 w-7 object-contain" />
@@ -256,7 +244,6 @@ function MainLayout() {
         </button>
       </div>
 
-      {/* ── Mobile overlay ── */}
       {isMobileMenuOpen && (
         <div className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-30" onClick={closeMobileMenu}>
           <div className="fixed inset-y-0 left-0 w-72 z-40 shadow-2xl"
@@ -270,16 +257,12 @@ function MainLayout() {
         </div>
       )}
 
-      {/* ── Desktop Sidebar ── */}
       <div className="hidden md:flex flex-col w-60 flex-shrink-0 border-r border-amber-900/30"
            style={{ background: SIDEBAR_BG }}>
         <SidebarContent />
       </div>
 
-      {/* ── Main Content Area ── */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden md:pt-0 pt-14">
-
-        {/* ── Top Header ── */}
         <div className="hidden md:flex items-center justify-between h-16 px-8 bg-white border-b border-stone-200 flex-shrink-0 shadow-sm">
           <PageLabel />
           <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-[11px] font-bold tracking-[0.12em] uppercase text-orange-600">
@@ -288,7 +271,6 @@ function MainLayout() {
           </div>
         </div>
 
-        {/* ── Content area ── */}
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-5 md:p-8" style={{ background: '#FAF9F6' }}>
           <div className="max-w-6xl mx-auto">
             <Routes>
@@ -323,17 +305,22 @@ function PageLabel() {
 }
 
 function App() {
-  const token = localStorage.getItem('token');
-  if (!token) {
-    return (
-      <BrowserRouter>
-        <Routes><Route path="*" element={<Login />} /></Routes>
-      </BrowserRouter>
-    );
-  }
   return (
     <BrowserRouter>
-      <MainLayout />
+      <Routes>
+        {/* Public Login Route */}
+        <Route path="/login" element={<Login />} />
+        
+        {/* Protected Admin Routes */}
+        <Route
+          path="/*"
+          element={
+            <ProtectedRoute>
+              <MainLayout />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
     </BrowserRouter>
   );
 }
