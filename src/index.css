@@ -1,23 +1,49 @@
 /* Tailwind CSS v4 */
 @import "tailwindcss";
 
-/* Google Font — Inter for clean admin typography */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* ── Global resets & base styles ───────────────────────────────────────── */
-*, *::before, *::after {
-  box-sizing: border-box;
-}
+*, *::before, *::after { box-sizing: border-box; }
 
 body {
   margin: 0;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f9fafb; /* gray-50 */
+  background-color: #FAF9F6;
+  color: #1C1917;
 }
 
-#root {
-  width: 100%;
-  min-height: 100vh;
+#root { width: 100%; min-height: 100vh; }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #D6D3D1; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #f97316; }
+
+/* New order highlight ring animation */
+@keyframes new-order-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(249,115,22,0.5); }
+  50%       { box-shadow: 0 0 0 8px rgba(249,115,22,0); }
+}
+.new-order-card {
+  animation: new-order-pulse 2s ease-in-out 3;
+  border-color: #f97316 !important;
+}
+
+/* Notification slide-in animation */
+@keyframes slide-in-right {
+  from { transform: translateX(110%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+.notification-enter {
+  animation: slide-in-right 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes slide-out-right {
+  from { transform: translateX(0);    opacity: 1; }
+  to   { transform: translateX(110%); opacity: 0; }
+}
+.notification-exit {
+  animation: slide-out-right 0.3s ease-in forwards;
 }

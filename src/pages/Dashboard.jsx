@@ -1,168 +1,125 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Tag, UtensilsCrossed, ShoppingBag, ChevronRight } from '../icons';
 
 export default function Dashboard() {
-    // State to hold our dashboard statistics
-    const [stats, setStats] = useState({
-        categories: 0,
-        menuItems: 0,
-        orders: 0
-    });
+    const [stats, setStats] = useState({ categories: 0, menuItems: 0, orders: 0 });
 
     useEffect(() => {
-        // Function to fetch all data and calculate counts
         const fetchStats = async () => {
             try {
-                // Fetching data from all three endpoints
-                const catRes = await axios.get('http://localhost:5000/api/categories');
-                const menuRes = await axios.get('http://localhost:5000/api/menu-items');
-                const orderRes = await axios.get('http://localhost:5000/api/orders');
-
-                // Updating the state with the length of each array
-                setStats({
-                    categories: catRes.data.length,
-                    menuItems: menuRes.data.length,
-                    orders: orderRes.data.length
-                });
-            } catch (error) {
-                console.error('Error fetching statistics:', error);
-            }
+                const [catRes, menuRes, orderRes] = await Promise.all([
+                    axios.get('http://localhost:5000/api/categories'),
+                    axios.get('http://localhost:5000/api/menu-items'),
+                    axios.get('http://localhost:5000/api/orders'),
+                ]);
+                setStats({ categories: catRes.data.length, menuItems: menuRes.data.length, orders: orderRes.data.length });
+            } catch (error) { console.error('Error fetching statistics:', error); }
         };
-
         fetchStats();
     }, []);
 
     const user = JSON.parse(localStorage.getItem('user'));
 
-    // ── Strict 2-accent palette from the logo ──────────────────────────────
-    // Orange = mango body  |  Lime = leaf/swoosh  |  Amber = warm mid-tone
     const cards = [
-        {
-            label: 'Total Categories',
-            value: stats.categories,
-            icon: '🏷️',
-            bar: 'from-orange-400 to-orange-500',
-            iconBg: 'bg-orange-50',
-            valueColor: 'text-orange-500',
-            desc: 'Active menu categories',
-        },
-        {
-            label: 'Total Menu Items',
-            value: stats.menuItems,
-            icon: '🍽️',
-            bar: 'from-amber-400 to-orange-500',
-            iconBg: 'bg-amber-50',
-            valueColor: 'text-amber-600',
-            desc: 'Dishes on the menu',
-        },
-        {
-            label: 'Total Orders',
-            value: stats.orders,
-            icon: '📦',
-            bar: 'from-lime-500 to-lime-600',
-            iconBg: 'bg-lime-50',
-            valueColor: 'text-lime-700',
-            desc: 'All-time customer orders',
-        },
+        { label: 'Total Orders',     value: stats.orders,     Icon: ShoppingBag,     href: '/orders',     desc: 'Customer orders placed'   },
+        { label: 'Total Categories', value: stats.categories, Icon: Tag,             href: '/categories', desc: 'Active menu categories'    },
+        { label: 'Total Menu Items', value: stats.menuItems,  Icon: UtensilsCrossed, href: '/menu-items', desc: 'Dishes on the menu'        },
+    ];
+
+    const quickActions = [
+        { href: '/orders',     Icon: ShoppingBag,     label: 'View Orders',       desc: 'Track and update order status'   },
+        { href: '/categories', Icon: Tag,             label: 'Manage Categories', desc: 'Add or edit food categories'     },
+        { href: '/menu-items', Icon: UtensilsCrossed, label: 'Manage Menu Items', desc: 'Add dishes with prices & images' },
     ];
 
     return (
-        <div className="space-y-8">
-            {/* Page header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">Dashboard</h1>
-                    <p className="text-gray-400 text-sm mt-1">
-                        Welcome back, <span className="font-semibold text-gray-600">{user?.name?.split(' ')[0]}</span>. Here's your restaurant at a glance.
-                    </p>
+        <div className="space-y-6">
+            <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-orange-600 text-xs font-semibold mb-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500" /> Admin Dashboard Overview
                 </div>
-                {/* Live pill — lime (leaf green = "active/live") */}
-                <div className="flex items-center gap-2 bg-lime-50 border border-lime-200 rounded-full px-4 py-2 text-xs font-semibold text-lime-700 self-start">
-                    <span className="w-2 h-2 rounded-full bg-lime-500 animate-pulse" />
-                    Live Data
-                </div>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-stone-900">
+                    Good to see you, <span className="text-orange-500">{user?.name?.split(' ')[0] || 'Admin'}</span> !
+                </h2>
+                <p className="text-stone-500 text-sm mt-1">Serving the most delicious meals to our community since 2010.</p>
             </div>
 
-            {/* ── Stat cards ── */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {/* Stat cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {cards.map((card) => (
-                    <div
-                        key={card.label}
-                        className="relative bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden"
-                    >
-                        {/* Accent bar — orange → amber → lime gradient across 3 cards */}
-                        <div className={`h-1.5 w-full bg-gradient-to-r ${card.bar}`} />
+                    <a key={card.label} href={card.href}
+                        className="group bg-white rounded-2xl border border-stone-100 hover:shadow-xl hover:-translate-y-1 hover:border-orange-200 transition-all duration-300 overflow-hidden shadow-sm">
+                        <div className="h-1 w-full bg-orange-500" />
                         <div className="p-6">
                             <div className="flex items-start justify-between mb-4">
-                                <div className={`w-12 h-12 ${card.iconBg} rounded-2xl flex items-center justify-center text-2xl shadow-sm`}>
-                                    {card.icon}
+                                <div className="w-11 h-11 bg-orange-50 rounded-xl flex items-center justify-center group-hover:bg-orange-100 transition-colors">
+                                    <card.Icon className="w-5 h-5 text-orange-500" />
                                 </div>
-                                <span className={`text-3xl font-extrabold ${card.valueColor}`}>{card.value}</span>
+                                <ChevronRight className="w-4 h-4 text-stone-300 group-hover:text-orange-500 transition-colors mt-1" />
                             </div>
-                            <h3 className="font-bold text-gray-800 text-base">{card.label}</h3>
-                            <p className="text-xs text-gray-400 mt-0.5">{card.desc}</p>
+                            <p className="text-4xl font-extrabold text-stone-900 mb-1">{card.value}</p>
+                            <p className="text-sm font-bold text-stone-700">{card.label}</p>
+                            <p className="text-xs text-stone-400 mt-0.5">{card.desc}</p>
                         </div>
-                    </div>
+                    </a>
                 ))}
             </div>
 
-            {/* ── Quick Actions ── */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                <h2 className="font-bold text-gray-900 text-base mb-5 flex items-center gap-2">
-                    <span className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center text-sm">⚡</span>
-                    Quick Actions
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    {[
-                        { href: '/categories', icon: '🏷️', label: 'Manage Categories', desc: 'Add or edit food categories' },
-                        { href: '/menu-items', icon: '🍽️', label: 'Manage Menu Items', desc: 'Add dishes with prices & images' },
-                        { href: '/orders',     icon: '📦', label: 'View Orders',        desc: 'Track and update order status' },
-                    ].map(q => (
-                        <a
-                            key={q.label}
-                            href={q.href}
-                            className="flex items-center gap-4 p-4 rounded-xl border-2 border-gray-100 hover:border-orange-200 hover:bg-orange-50 transition-all duration-200 group"
-                        >
-                            <div className="w-10 h-10 bg-gray-100 group-hover:bg-orange-100 rounded-xl flex items-center justify-center text-xl transition-colors flex-shrink-0">
-                                {q.icon}
+            {/* Quick Actions */}
+            <div className="bg-white rounded-2xl border border-stone-100 p-6 shadow-sm">
+                <p className="text-[10px] font-bold text-orange-500 uppercase tracking-[0.15em] mb-4">Quick Actions</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {quickActions.map(q => (
+                        <a key={q.label} href={q.href}
+                            className="group flex items-center gap-3 p-4 rounded-xl border border-stone-100 bg-stone-50/50 hover:border-orange-200 hover:bg-orange-50/40 transition-all duration-200">
+                            <div className="w-9 h-9 bg-white border border-stone-100 group-hover:border-orange-200 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
+                                <q.Icon className="w-4 h-4 text-orange-500" />
                             </div>
-                            <div className="min-w-0">
-                                <p className="text-sm font-bold text-gray-800 group-hover:text-orange-600 transition-colors">{q.label}</p>
-                                <p className="text-xs text-gray-400 truncate">{q.desc}</p>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-sm font-bold text-stone-800 group-hover:text-orange-600 transition-colors">{q.label}</p>
+                                <p className="text-xs text-stone-400 truncate">{q.desc}</p>
                             </div>
+                            <ChevronRight className="w-4 h-4 text-stone-300 group-hover:text-orange-500 transition-colors flex-shrink-0" />
                         </a>
                     ))}
                 </div>
             </div>
 
-            {/* ── At-a-glance summary strip ── */}
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 via-orange-950 to-stone-900 p-6 text-white">
-                <div className="absolute -top-16 -right-16 w-48 h-48 bg-orange-500/20 rounded-full blur-3xl pointer-events-none" />
-                <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-lime-500/10 rounded-full blur-3xl pointer-events-none" />
-                <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                    <div>
-                        <p className="text-orange-300/80 text-xs font-bold uppercase tracking-widest mb-1">Restaurant Overview</p>
-                        <p className="text-xl sm:text-2xl font-extrabold text-white leading-tight">
-                            {stats.menuItems} dishes across {stats.categories} categories
-                        </p>
-                        <p className="text-orange-200/60 text-sm mt-1">
-                            {stats.orders} orders placed by customers so far
-                        </p>
-                    </div>
-                    <div className="flex gap-6 flex-shrink-0">
-                        <div className="text-center">
-                            <p className="text-2xl font-extrabold text-orange-400">{stats.categories}</p>
-                            <p className="text-xs text-orange-300/60 mt-0.5">Categories</p>
+            {/* ── Overview Hero Banner — White with Orange & Green Border ── */}
+            <div className="rounded-2xl p-[2px] bg-gradient-to-r from-orange-500 to-green-500 shadow-xl">
+                <div className="relative overflow-hidden rounded-[14px] p-6 md:p-8 bg-white h-full">
+                    <div className="absolute top-0 right-0 w-80 h-80 bg-orange-500/5 rounded-full blur-3xl pointer-events-none -translate-y-1/3 translate-x-1/3" />
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-green-500/5 rounded-full blur-3xl pointer-events-none translate-y-1/3 -translate-x-1/3" />
+
+                    <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                        <div>
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-orange-600 text-[10px] font-bold tracking-[0.15em] uppercase mb-3">
+                                Authentic Recipes &amp; Quality
+                            </div>
+                            <p className="text-2xl sm:text-3xl font-extrabold text-stone-900 leading-tight">
+                                {stats.menuItems} Dishes · {stats.categories} Categories
+                            </p>
+                            <p className="text-stone-500 text-sm mt-1 font-medium">
+                                {stats.orders} total pre-orders &amp; pickup orders received
+                            </p>
                         </div>
-                        <div className="w-px bg-white/10" />
-                        <div className="text-center">
-                            <p className="text-2xl font-extrabold text-amber-400">{stats.menuItems}</p>
-                            <p className="text-xs text-orange-300/60 mt-0.5">Menu Items</p>
-                        </div>
-                        <div className="w-px bg-white/10" />
-                        <div className="text-center">
-                            <p className="text-2xl font-extrabold text-lime-400">{stats.orders}</p>
-                            <p className="text-xs text-orange-300/60 mt-0.5">Orders</p>
+
+                        {/* Stats pill strip */}
+                        <div className="flex items-center gap-6 flex-shrink-0">
+                            {[
+                                { label: 'Orders',     value: `${stats.orders}+`     },
+                                { label: 'Dishes',     value: `${stats.menuItems}+`  },
+                                { label: 'Categories', value: stats.categories        },
+                            ].map((s, i, arr) => (
+                                <div key={s.label} className="flex items-center gap-6">
+                                    <div className="text-center">
+                                        <p className="text-2xl font-extrabold text-orange-500">{s.value}</p>
+                                        <p className="text-xs text-stone-500 mt-0.5 tracking-wide font-medium">{s.label}</p>
+                                    </div>
+                                    {i < arr.length - 1 && <div className="w-px h-8 bg-stone-200" />}
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>

@@ -1,35 +1,141 @@
-import { useState } from 'react';
-import { BrowserRouter, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { BrowserRouter, Routes, Route, Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Tag, UtensilsCrossed, ShoppingBag, LogOut, Menu, X, Bell, ChevronRight } from './icons';
+import axios from 'axios';
 import Dashboard from './pages/Dashboard';
 import Categories from './pages/Categories';
 import MenuItems from './pages/MenuItems';
 import Orders from './pages/Orders';
 import Login from './pages/Login';
 
-function NavLink({ to, children, onClick }) {
+// ── Brand Gradient (Sidebar + Form panels) ──────────────────────────────────
+const SIDEBAR_BG = 'linear-gradient(175deg, #402110 0%, #b14d1b 45%, #a85738 100%)';
+
+// ── Order Notification Toast ─────────────────────────────────────────────────
+function OrderNotification({ order, onDismiss, onViewOrders }) {
+  const [exiting, setExiting] = useState(false);
+
+  const handleDismiss = () => {
+    setExiting(true);
+    setTimeout(onDismiss, 280);
+  };
+
+  const handleView = () => {
+    setExiting(true);
+    setTimeout(() => { onDismiss(); onViewOrders(); }, 280);
+  };
+
+  return (
+    <div
+      className={`fixed top-5 right-5 z-[9999] w-80 select-none ${exiting ? 'notification-exit' : 'notification-enter'}`}
+      onClick={handleDismiss}
+    >
+      <div className="bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden cursor-pointer group hover:shadow-orange-200/50 transition-shadow duration-300"
+           style={{ boxShadow: '0 8px 32px rgba(249,115,22,0.18), 0 2px 8px rgba(0,0,0,0.08)' }}>
+
+        {/* Orange top accent bar */}
+        <div className="h-1 w-full bg-gradient-to-r from-orange-500 to-amber-400" />
+
+        <div className="p-4">
+          {/* Header row */}
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 bg-orange-100 rounded-xl flex items-center justify-center flex-shrink-0 relative">
+                <Bell className="w-4 h-4 text-orange-500" />
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-orange-500 border-2 border-white animate-pulse" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-orange-500 uppercase tracking-wider">New Order!</p>
+                <p className="text-sm font-extrabold text-stone-900 leading-tight">
+                  #{String(order.id).padStart(4, '0')} Received
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={e => { e.stopPropagation(); handleDismiss(); }}
+              className="w-6 h-6 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center flex-shrink-0 transition-colors"
+            >
+              <X className="w-3.5 h-3.5 text-stone-500" />
+            </button>
+          </div>
+
+          {/* Order details */}
+          <div className="bg-stone-50 rounded-xl p-3 border border-stone-100 mb-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs text-stone-500 font-medium">Order Total</span>
+              <span className="text-sm font-extrabold text-stone-900">
+                Rs. {Number(order.total_amount || 0).toLocaleString()}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-stone-500 font-medium">Items</span>
+              <span className="text-xs font-bold text-orange-500">
+                {order.items?.length || '—'} {order.items?.length === 1 ? 'item' : 'items'}
+              </span>
+            </div>
+            {order.pickup_time && (
+              <div className="flex items-center justify-between mt-1.5">
+                <span className="text-xs text-stone-500 font-medium">Pickup</span>
+                <span className="text-xs font-bold text-amber-600">{order.pickup_time}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Action row */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={e => { e.stopPropagation(); handleView(); }}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl transition-colors"
+            >
+              View Orders <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={e => { e.stopPropagation(); handleDismiss(); }}
+              className="px-3 py-2 border border-stone-200 text-stone-500 text-xs font-semibold rounded-xl hover:bg-stone-50 transition-colors"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+
+        {/* Bottom hint */}
+        <div className="px-4 pb-3">
+          <p className="text-[10px] text-stone-400 text-center">Click anywhere to dismiss</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Sidebar Link ─────────────────────────────────────────────────────────────
+function SidebarLink({ to, icon: Icon, label, onClick }) {
   const location = useLocation();
   const isActive = location.pathname === to;
   return (
     <Link
       to={to}
       onClick={onClick}
-      className={`group relative flex items-center gap-3 px-4 py-3 rounded-xl mb-1.5 font-semibold transition-all duration-200 ease-in-out ${
+      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
         isActive
-          ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/25'
-          : 'text-gray-500 hover:bg-orange-50 hover:text-orange-600 hover:translate-x-0.5'
+          ? 'bg-orange-500 text-white shadow-md shadow-orange-500/30'
+          : 'text-amber-100/60 hover:text-white hover:bg-white/8'
       }`}
     >
-      <span className={`transition-opacity duration-200 ${isActive ? 'opacity-100' : 'opacity-60 group-hover:opacity-100'}`}>
-        {children}
-      </span>
-      {isActive && <span className="absolute right-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-white/60" />}
+      <Icon className="w-4 h-4 flex-shrink-0" />
+      <span>{label}</span>
+      {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white/70 flex-shrink-0" />}
     </Link>
   );
 }
 
+// ── Main Layout ───────────────────────────────────────────────────────────────
 function MainLayout() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const user = JSON.parse(localStorage.getItem('user'));
+  const [isMobileMenuOpen, setIsMobileMenuOpen]   = useState(false);
+  const [notification, setNotification]           = useState(null);
+  const lastOrderIdRef                            = useRef(null);
+  const navigate                                  = useNavigate();
+  const user                                      = JSON.parse(localStorage.getItem('user'));
+  const closeMobileMenu                           = () => setIsMobileMenuOpen(false);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -37,145 +143,160 @@ function MainLayout() {
     window.location.href = '/';
   };
 
-  const closeMobileMenu = () => setIsMobileMenuOpen(false);
+  // ── Poll for new orders every 10 seconds ───────────────────────────────────
+  const pollOrders = useCallback(async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/orders');
+      const orders = res.data;
+      if (!orders || orders.length === 0) return;
+
+      // Sort by id descending to find the latest
+      const latest = orders.reduce((max, o) => (o.id > max.id ? o : max), orders[0]);
+
+      if (lastOrderIdRef.current === null) {
+        // First load — just store the latest id, no notification
+        lastOrderIdRef.current = latest.id;
+      } else if (latest.id > lastOrderIdRef.current) {
+        // New order detected!
+        lastOrderIdRef.current = latest.id;
+        setNotification(latest);
+      }
+    } catch (e) {
+      console.error('Order poll error:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    pollOrders();
+    const interval = setInterval(pollOrders, 10000);
+    return () => clearInterval(interval);
+  }, [pollOrders]);
+
+  const navItems = [
+    { to: '/',           icon: LayoutDashboard, label: 'Dashboard'  },
+    { to: '/orders',     icon: ShoppingBag,     label: 'Orders'     },
+    { to: '/categories', icon: Tag,             label: 'Categories' },
+    { to: '/menu-items', icon: UtensilsCrossed, label: 'Menu Items' },
+  ];
 
   const SidebarContent = () => (
-    <>
-      {/* Brand */}
-      <div className="p-6 pb-4">
-        <div className="flex items-center gap-3 mb-6">
-          <img src="/favicon.png" alt="MangoTree" className="h-10 w-10 object-contain flex-shrink-0" />
+    <div className="flex flex-col h-full">
+
+      {/* ── Brand ── */}
+      <div className="px-5 pt-6 pb-5 border-b border-amber-900/30">
+        <div className="flex items-center gap-3">
+          <img src="/favicon.png" alt="MangoTree" className="h-9 w-9 object-contain flex-shrink-0" />
           <div>
-            <h2 className="text-lg font-extrabold tracking-tight text-gray-900 leading-none">
-              Mango<span className="text-orange-500">Tree</span>
-            </h2>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">
+            <p className="text-base font-extrabold text-white leading-none tracking-tight">
+              Mango<span className="text-orange-400">Tree</span>
+            </p>
+            <span className="text-[10px] font-bold text-orange-400/70 tracking-[0.15em] uppercase">
               Admin Panel
             </span>
           </div>
         </div>
+      </div>
 
-        {/* User card */}
-        <div className="relative group">
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-400/20 to-amber-400/20 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <div className="relative flex items-center gap-3 bg-white/80 backdrop-blur-sm p-3 rounded-2xl border border-gray-200/60 shadow-sm hover:shadow-md transition-all duration-300">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white flex items-center justify-center font-bold text-lg shadow-md shadow-orange-500/20 flex-shrink-0">
-              {user?.name?.charAt(0) || 'A'}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-gray-800 truncate">{user?.name}</p>
-              <p className="text-xs text-gray-400 font-medium">Head Administrator</p>
-            </div>
-            <div className="w-2 h-2 rounded-full bg-lime-400 ring-2 ring-lime-100 flex-shrink-0" />
+      {/* ── User card ── */}
+      <div className="px-4 py-4 border-b border-amber-900/30">
+        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/5 border border-amber-900/40">
+          <div className="w-9 h-9 rounded-lg bg-orange-500 text-white flex items-center justify-center font-bold text-sm shadow-md flex-shrink-0">
+            {user?.name?.charAt(0)?.toUpperCase() || 'A'}
           </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold text-white truncate leading-tight">{user?.name || 'Admin'}</p>
+            <p className="text-xs text-amber-200/50 font-medium mt-0.5">Administrator</p>
+          </div>
+          <span className="w-2 h-2 rounded-full bg-orange-400 flex-shrink-0" />
         </div>
       </div>
 
-      {/* Nav items */}
-      <div className="px-4 flex-1">
-        <div className="flex items-center gap-2 px-4 mb-3">
-          <span className="h-px flex-1 bg-gradient-to-r from-transparent to-gray-200" />
-          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.15em]">Navigation</p>
-          <span className="h-px flex-1 bg-gradient-to-l from-transparent to-gray-200" />
-        </div>
-
-        <NavLink to="/" onClick={closeMobileMenu}>
-          <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
-          </svg>
-          <span>Dashboard</span>
-        </NavLink>
-
-        <NavLink to="/categories" onClick={closeMobileMenu}>
-          <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-          </svg>
-          <span>Categories</span>
-        </NavLink>
-
-        <NavLink to="/menu-items" onClick={closeMobileMenu}>
-          <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-          </svg>
-          <span>Menu Items</span>
-        </NavLink>
-
-        <NavLink to="/orders" onClick={closeMobileMenu}>
-          <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
-          </svg>
-          <span>Orders</span>
-        </NavLink>
+      {/* ── Navigation ── */}
+      <div className="flex-1 px-3 py-4 space-y-1">
+        <p className="text-[10px] font-bold text-amber-200/30 uppercase tracking-[0.15em] px-4 mb-3">Navigation</p>
+        {navItems.map(item => (
+          <SidebarLink key={item.to} to={item.to} icon={item.icon} label={item.label} onClick={closeMobileMenu} />
+        ))}
       </div>
 
-      {/* Logout */}
-      <div className="p-5 mt-2">
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-50 to-red-100/60 border border-red-200/40 p-4">
-          <div className="absolute -top-6 -right-6 w-16 h-16 rounded-full bg-red-200/30 blur-2xl" />
-          <button
-            onClick={handleLogout}
-            className="relative w-full flex items-center justify-center gap-2.5 px-4 py-3 text-sm font-bold text-red-600 hover:text-red-700 bg-white/70 hover:bg-white rounded-xl transition-all duration-200 shadow-sm hover:shadow-md border border-red-200/50"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-            </svg>
-            <span>Sign Out</span>
-          </button>
-        </div>
+      {/* ── Sign Out ── */}
+      <div className="px-3 pb-5">
+        <div className="h-px bg-amber-900/30 mb-4" />
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold text-amber-200/50 hover:text-white hover:bg-white/8 transition-all duration-200 group"
+        >
+          <LogOut className="w-4 h-4 flex-shrink-0 group-hover:text-orange-400 transition-colors" />
+          <span>Sign Out</span>
+        </button>
       </div>
-    </>
+    </div>
   );
 
   return (
-    <div className="flex h-screen bg-gray-50 font-sans overflow-hidden antialiased">
-      {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-md shadow-sm z-20 flex items-center justify-between px-5 border-b border-gray-100">
-        <div className="flex items-center gap-2">
-          <img src="/favicon.png" alt="MangoTree" className="h-8 w-8 object-contain" />
-          <h2 className="text-lg font-extrabold text-gray-900">Mango<span className="text-orange-500">Tree</span></h2>
+    <div className="flex h-screen overflow-hidden font-sans antialiased" style={{ background: '#FAF9F6' }}>
+
+      {/* ── Order Notification ── */}
+      {notification && (
+        <OrderNotification
+          order={notification}
+          onDismiss={() => setNotification(null)}
+          onViewOrders={() => navigate('/orders')}
+        />
+      )}
+
+      {/* ── Mobile top bar ── */}
+      <div className="md:hidden fixed top-0 left-0 right-0 h-14 z-20 flex items-center justify-between px-4 bg-white border-b border-stone-200 shadow-sm">
+        <div className="flex items-center gap-2.5">
+          <img src="/favicon.png" alt="" className="h-7 w-7 object-contain" />
+          <p className="text-base font-extrabold text-stone-900">Mango<span className="text-orange-500">Tree</span></p>
         </div>
-        <button
-          onClick={() => setIsMobileMenuOpen(true)}
-          className="text-gray-500 hover:text-orange-500 focus:outline-none p-2 -mr-2 rounded-xl hover:bg-orange-50 transition-colors duration-200"
-        >
-          <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"/>
-          </svg>
+        <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 rounded-lg text-stone-600 hover:bg-stone-100 transition-colors">
+          <Menu className="w-5 h-5" />
         </button>
       </div>
 
-      {/* Mobile Sidebar Overlay */}
+      {/* ── Mobile overlay ── */}
       {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-30 transition-opacity duration-300" onClick={closeMobileMenu}>
-          <div
-            className="fixed inset-y-0 left-0 w-[300px] bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] z-40 rounded-r-3xl"
-            onClick={e => e.stopPropagation()}
-          >
-            <button onClick={closeMobileMenu} className="absolute top-5 right-5 text-gray-400 hover:text-gray-700 p-1.5 rounded-full hover:bg-gray-100 transition-colors duration-200">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
-              </svg>
+        <div className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-30" onClick={closeMobileMenu}>
+          <div className="fixed inset-y-0 left-0 w-72 z-40 shadow-2xl"
+               style={{ background: SIDEBAR_BG }}
+               onClick={e => e.stopPropagation()}>
+            <button onClick={closeMobileMenu} className="absolute top-4 right-4 text-amber-200/60 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors">
+              <X className="w-5 h-5" />
             </button>
             <SidebarContent />
           </div>
         </div>
       )}
 
-      {/* Desktop Sidebar */}
-      <div className="hidden md:flex flex-col w-[280px] bg-white/90 backdrop-blur-sm border-r border-gray-100/80 shadow-sm z-10 flex-shrink-0">
+      {/* ── Desktop Sidebar ── */}
+      <div className="hidden md:flex flex-col w-60 flex-shrink-0 border-r border-amber-900/30"
+           style={{ background: SIDEBAR_BG }}>
         <SidebarContent />
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden md:pt-0 pt-16">
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-4 md:p-8 w-full">
-          <div className="max-w-7xl mx-auto w-full">
+      {/* ── Main Content Area ── */}
+      <div className="flex-1 flex flex-col h-screen overflow-hidden md:pt-0 pt-14">
+
+        {/* ── Top Header ── */}
+        <div className="hidden md:flex items-center justify-between h-16 px-8 bg-white border-b border-stone-200 flex-shrink-0 shadow-sm">
+          <PageLabel />
+          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-[11px] font-bold tracking-[0.12em] uppercase text-orange-600">
+            <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+            Admin System Live
+          </div>
+        </div>
+
+        {/* ── Content area ── */}
+        <main className="flex-1 overflow-x-hidden overflow-y-auto p-5 md:p-8" style={{ background: '#FAF9F6' }}>
+          <div className="max-w-6xl mx-auto">
             <Routes>
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/"           element={<Dashboard />} />
+              <Route path="/orders"     element={<Orders />} />
               <Route path="/categories" element={<Categories />} />
               <Route path="/menu-items" element={<MenuItems />} />
-              <Route path="/orders" element={<Orders />} />
-              <Route path="*" element={<Navigate to="/" />} />
+              <Route path="*"           element={<Navigate to="/" />} />
             </Routes>
           </div>
         </main>
@@ -184,19 +305,32 @@ function MainLayout() {
   );
 }
 
+function PageLabel() {
+  const location = useLocation();
+  const labels = {
+    '/':           { sup: 'Overview',   title: 'Dashboard'       },
+    '/orders':     { sup: 'Operations', title: 'Customer Orders' },
+    '/categories': { sup: 'Management', title: 'Categories'      },
+    '/menu-items': { sup: 'Management', title: 'Menu Items'      },
+  };
+  const pg = labels[location.pathname] || labels['/'];
+  return (
+    <div>
+      <p className="text-orange-500 text-[10px] font-bold uppercase tracking-[0.15em]">{pg.sup}</p>
+      <h1 className="text-stone-900 font-extrabold text-lg leading-tight">{pg.title}</h1>
+    </div>
+  );
+}
+
 function App() {
   const token = localStorage.getItem('token');
-
   if (!token) {
     return (
       <BrowserRouter>
-        <Routes>
-          <Route path="*" element={<Login />} />
-        </Routes>
+        <Routes><Route path="*" element={<Login />} /></Routes>
       </BrowserRouter>
     );
   }
-
   return (
     <BrowserRouter>
       <MainLayout />
