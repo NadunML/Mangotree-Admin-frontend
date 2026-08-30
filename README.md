@@ -1,16 +1,19 @@
-# React + Vite
+# 🥭 MangoTree - Admin Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, secure, and responsive admin dashboard for managing **MangoTree** restaurant operations. Built with React and Vite, this panel allows restaurant staff and administrators to efficiently manage incoming orders, track their status, and oversee overall restaurant activities.
 
-Currently, two official plugins are available:
+## ✨ Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+* **Real-time Order Management:** View incoming orders instantly and track their details (items, quantity, pickup time, order type).
+* **Order Status Tracking:** Seamlessly update order statuses (e.g., Pending, Processing, Completed, Cancelled) to keep the customer app synchronized.
+* **Order Type Filtering:** Easily distinguish between 'Store Pickup (Takeaway)' and 'Dine-in' orders.
+* **Secure Access:** Protected routes and authentication to ensure only authorized staff can manage orders.
+* **Responsive UI:** Clean, intuitive, and mobile-friendly interface powered by Tailwind CSS.
 
-## React Compiler
+## 🛠️ Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+* **Framework:** React.js powered by Vite
+* **Styling:** Tailwind CSS
+* **Routing:** React Router DOM
+* **HTTP Client:** Axios
+* **Icons:** Lucide React
